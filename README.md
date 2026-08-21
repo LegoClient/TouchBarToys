@@ -1,5 +1,7 @@
 # Touch Bar Toys
 
+[![build](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml/badge.svg)](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml)
+
 Thirty-two pointless, flashy things for the MacBook Pro Touch Bar — screensavers,
 demoscene effects, small games and a few real system monitors.
 
@@ -10,8 +12,12 @@ Native Swift, no dependencies, builds with Command Line Tools. No Xcode required
 
 ## Requirements
 
-- A Mac with a Touch Bar (built and tested on a MacBook Pro 16", macOS 26.1)
+- A Mac with a Touch Bar (developed on a MacBook Pro 16", macOS 26.1, Intel)
 - Xcode Command Line Tools — `xcode-select --install`
+
+CI also builds it on Apple Silicon (macOS 26.5, Swift 6.3, `arm64`), so the
+source is architecture-clean — but the Touch Bar hardware only ever shipped on
+Intel MacBook Pros, so that's the only place it can actually run.
 
 No Xcode, no package manager, no dependencies.
 
