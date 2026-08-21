@@ -30,8 +30,8 @@ jobs:
       - name: Build the offscreen renderer
         run: swiftc -O -o build/render Sources/Toys/*.swift Sources/Render/main.swift
 
-      # The Touch Bar itself can't be exercised on a runner, but every scene's
-      # update+draw can — this catches a scene that crashes or hangs.
+      # The Touch Bar cannot be exercised on a runner, but every scene's
+      # update+draw can. This catches a scene that crashes or hangs.
       - name: Render every scene
         run: ./build/render "$RUNNER_TEMP/preview"
 
