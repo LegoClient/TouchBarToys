@@ -1,0 +1,46 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          swift --version
+          xcrun --show-sdk-version
+
+      - name: Build the app
+        run: ./build.sh
+
+      - name: Check the bundle came out intact
+        run: |
+          test -x build/TouchBarToys.app/Contents/MacOS/TouchBarToys
+          test -f build/TouchBarToys.app/Contents/Info.plist
+          codesign --verify --verbose build/TouchBarToys.app
+
+      - name: Build the offscreen renderer
+        run: swiftc -O -o build/render Sources/Toys/*.swift Sources/Render/main.swift
+
+      # The Touch Bar itself can't be exercised on a runner, but every scene's
+      # update+draw can — this catches a scene that crashes or hangs.
+      - name: Render every scene
+        run: ./build/render "$RUNNER_TEMP/preview"
+
+      - name: Benchmark every scene
+        run: ./build/render bench --bench
+
+      - name: Upload contact sheets
+        uses: actions/upload-artifact@v4
+        with:
+          name: contact-sheets
+          path: ${{ runner.temp }}/preview/sheet-*.png
+          if-no-files-found: error
