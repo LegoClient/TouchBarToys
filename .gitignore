@@ -1,0 +1,10 @@
+# Build output
+build/
+
+# Generated preview renders (regenerate with ./build/render preview)
+preview/
+
+# Runtime trace log lives in ~/Library/Logs, but just in case
+*.log
+
+.DS_Store
