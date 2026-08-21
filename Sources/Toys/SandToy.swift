@@ -47,7 +47,7 @@ final class SandToy: PixelToy {
             pour = (x: rng.int(max(1, w)), life: 0.5)
         }
         // Wipe only when a pile genuinely reaches the top and stays there.
-        // Row 0 is where pouring happens, so test below the spout — checking
+        // Row 0 is where pouring happens, so test below the spout. Checking
         // row 0 here meant every pour instantly cleared the grid.
         let probe = 4 * w
         let capped = probe + w <= grid.count

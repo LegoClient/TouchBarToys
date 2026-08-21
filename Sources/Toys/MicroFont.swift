@@ -19,7 +19,7 @@ enum MicroFont {
         "!": "22202", "+": "02720", " ": "00000",
     ]
 
-    /// Every character the font can actually draw — handy for random glyph soup.
+    /// Every character the font can actually draw, handy for random glyph soup.
     static let alphabet: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
     static func glyph(_ c: Character) -> String? {

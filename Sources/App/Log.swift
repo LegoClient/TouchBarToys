@@ -28,6 +28,6 @@ enum Log {
         try? FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? "".write(to: url, atomically: true, encoding: .utf8)
-        write("session start — \(note)")
+        write("session start: \(note)")
     }
 }

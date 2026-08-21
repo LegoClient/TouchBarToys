@@ -93,11 +93,11 @@ final class NyanToy: PixelToy {
 
     /// `x` = left edge of the pop-tart, `y` = top of the sprite box (16 tall).
     private func cat(_ b: PixelBuffer, _ x: Int, _ y: Int, _ f: Int) {
-        // tail — swings up and down behind the tart
+        // tail, swings up and down behind the tart
         let tailY = [7, 6, 5, 5, 6, 7][f]
         b.box(x - 5, y + tailY, 6, 3, fill: fur, stroke: ink)
 
-        // legs — little stubs that paddle
+        // legs, little stubs that paddle
         let legDrop = [0, 1, 1, 0, 0, 1][f]
         for (i, lx) in [1, 5, 9, 12].enumerated() {
             let d = (i % 2 == 0) ? legDrop : 1 - legDrop

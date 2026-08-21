@@ -38,7 +38,7 @@ class PixelToy: Toy {
         return b
     }
 
-    /// Called when the pixel canvas is (re)allocated — seed particles here.
+    /// Called when the pixel canvas is (re)allocated. Seed particles here.
     func resized(to buf: PixelBuffer) {}
     func update(dt: Double, size: CGSize) {}
     func renderPixels(into buf: PixelBuffer) {}

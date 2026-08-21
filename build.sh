@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds TouchBarToys.app. Command Line Tools are enough — no Xcode required.
+# Builds TouchBarToys.app. Command Line Tools are enough, no Xcode required.
 set -euo pipefail
 cd "$(dirname "$0")"
 

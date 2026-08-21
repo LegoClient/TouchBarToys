@@ -73,7 +73,7 @@ final class StarfieldToy: PixelToy {
             default: c = rgb(v, v, 255.clamped(v + 12))
             }
 
-            // Streak from where the star was last frame — this is the warp look.
+            // Streak from where the star was last frame. This is the warp look.
             let px = cx + s.x / s.pz * cx
             let py = cy + s.y / s.pz * cy
             let dist = abs(sx - px) + abs(sy - py)

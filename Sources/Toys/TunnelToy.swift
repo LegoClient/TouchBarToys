@@ -2,8 +2,8 @@ import CoreGraphics
 import Foundation
 
 /// A row of tunnel mouths rather than one tunnel stretched across the bar.
-/// Each mouth is normalised against the bar's height, so it stays round —
-/// stretching a single radial tunnel to 33:1 is what made it look smeared.
+/// Each mouth is normalised against the bar's height, so it stays round.
+/// Stretching a single radial tunnel to 33:1 is what made it look smeared.
 final class TunnelToy: PixelToy {
     override var title: String { "Tunnels" }
     override var emoji: String { "🕳️" }

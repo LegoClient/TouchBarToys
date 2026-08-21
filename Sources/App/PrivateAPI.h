@@ -2,7 +2,7 @@
 
 // Touch Bar SPI. These have existed since 10.12 and are still present on
 // macOS 26 (verified with -[NSObject respondsToSelector:] at runtime before
-// anything here is called). Declaring them in a category is enough — ObjC
+// anything here is called). Declaring them in a category is enough, because ObjC
 // method dispatch needs no link-time symbol.
 
 @interface NSTouchBarItem (TBToysPrivate)

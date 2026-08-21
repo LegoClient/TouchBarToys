@@ -42,7 +42,7 @@ final class CPUToy: Toy {
                 let idle = 0.05 + 0.035 * sin(clock * 3.1 + Double(i) * 0.55)
                 target = min(1, max(idle, mix * rng.range(0.72, 1.18) + 0.02))
             }
-            // fast attack, slow decay — proper VU behaviour
+            // fast attack, slow decay, like a real VU meter
             let rate = target > levels[i] ? 14.0 : 4.0
             levels[i] += (target - levels[i]) * min(1, rate * dt)
             peaks[i] = max(peaks[i] - dt * 0.42, levels[i])

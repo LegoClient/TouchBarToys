@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 
 /// Elementary cellular automata. Each row is one generation and the display
-/// scrolls upward — which is exactly the shape of this screen.
+/// scrolls upward, which is exactly the shape of this screen.
 final class Rule110Toy: PixelToy {
     override var title: String { "Rule 110" }
     override var emoji: String { "🔺" }

@@ -2,7 +2,7 @@ import AppKit
 
 /// Menu rows we draw ourselves.
 ///
-/// On macOS 26 this app's status-menu item titles render as nothing — the rows,
+/// On macOS 26 this app's status-menu item titles render as nothing. The rows,
 /// separators and checkmarks appear but the text never does, while fonts,
 /// colours and titles all check out at runtime. Owning the drawing sidesteps
 /// whatever the system is doing with the title text.
@@ -61,9 +61,9 @@ final class MenuRowView: NSView {
         }
         item.menu?.cancelTracking()
         guard let action = item.action else { return }
-        // Defer until the menu has actually gone away — presenting a
+        // Defer until the menu has actually gone away. Presenting a
         // system-modal Touch Bar while tracking is unwinding does nothing.
-        // Let the menu fully close first — while it is open the Touch Bar is
+        // Let the menu fully close first. While it is open the Touch Bar is
         // showing the menu's own context, and anything we present is discarded
         // when that context is restored.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {

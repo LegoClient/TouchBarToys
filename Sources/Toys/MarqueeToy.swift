@@ -3,7 +3,7 @@ import Foundation
 
 /// An LED dot-matrix scroller showing your own text.
 ///
-/// Messages live in a plain text file — one per line — which is watched for
+/// Messages live in a plain text file, one per line, which is watched for
 /// changes and reloaded live. A text file rather than an in-app editor because
 /// AppKit text controls don't render in this app at all.
 final class MarqueeToy: PixelToy {

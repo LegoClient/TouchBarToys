@@ -2,7 +2,7 @@ import AppKit
 
 /// Touch Bar buttons we draw ourselves.
 ///
-/// `NSButton` renders nothing in this app — not its title, not a symbol image,
+/// `NSButton` renders nothing in this app: not its title, not a symbol image,
 /// not even its bezel; it comes out as an empty slot on the bar. It's the same
 /// failure that made the status menu blank. Custom view drawing works, so
 /// everything here is plain Bezier paths: no control artwork, no text, no image.

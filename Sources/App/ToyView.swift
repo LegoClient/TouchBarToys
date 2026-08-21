@@ -18,7 +18,7 @@ final class ToyView: NSView {
         super.init(frame: NSRect(x: 0, y: 0, width: 1004, height: 30))
         wantsLayer = true
         layer?.backgroundColor = NSColor.black.cgColor
-        // Same opt-in as the buttons — without this the toys never see a tap,
+        // Same opt-in as the buttons. Without this the toys never see a tap,
         // so fire, hyperspace and Flap would all be inert on the bar.
         allowedTouchTypes = [.direct]
     }

@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// Pong that plays itself. Two imperfect AIs down the long axis — 30 points of
+/// Pong that plays itself. Two imperfect AIs down the long axis. 30 points of
 /// vertical travel on a surface with no tactile feedback made it miserable to
 /// actually control, so nobody controls it.
 final class PongToy: PixelToy {

@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// DFRFoundation lives only in the dyld shared cache — there is no .tbd to link
+/// DFRFoundation lives only in the dyld shared cache, so there is no .tbd to link
 /// against, so its C functions are resolved with dlsym at first use.
 enum DFR {
     private static let handle: UnsafeMutableRawPointer? = dlopen(

@@ -29,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private var menu = NSMenu()
 
     /// A nib-less app has no main menu. Without one, macOS 26 draws status-item
-    /// menu rows with no text at all — separators and checkmarks still render,
+    /// menu rows with no text at all. Separators and checkmarks still render,
     /// which is exactly the "blank menu" symptom.
     private func installMainMenu() {
         let main = NSMenu()
@@ -55,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     /// Note on 1050: the zero-frames check can't calibrate this one. With a
     /// single item the bar clips an oversize canvas instead of refusing to lay
     /// it out, so even 1400pt "draws fine" while running off the edge. The
-    /// figure is derived from the button-mode measurements instead — a total
+    /// figure is derived from the button-mode measurements instead. A total
     /// item row of ~1070pt laid out and ~1080pt did not.
     private var fullScreen: Bool { defaults.bool(forKey: fullScreenKey) }
 
@@ -152,7 +152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     }
 
     /// Pops the status menu open, then renders every on-screen window of this
-    /// process into a PNG via cacheDisplay — an in-process capture, so it needs
+    /// process into a PNG via cacheDisplay, an in-process capture, so it needs
     /// no Screen Recording permission.
     private func runMenuShot() {
         devMode = true
@@ -189,7 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     /// Opens the real menu, fires "Show on Touch Bar" through the real row
     /// action path, and checks the bar actually came up afterwards.
     /// Presents the bar, then fires the live buttons' tap handlers and checks
-    /// they actually did something. This tests the wiring, not touch delivery —
+    /// they actually did something. This tests the wiring, not touch delivery,
     /// synthesising a Touch Bar touch needs permissions this process lacks.
     private func runButtonWiringTest() {
         devMode = true
@@ -355,7 +355,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         probe("Menlo 13", NSFont(name: "Menlo", size: 13))
         probe("Helvetica 13", NSFont(name: "Helvetica", size: 13))
         probe("HelveticaNeue 13", NSFont(name: "HelveticaNeue", size: 13))
-        // Glyph lookup succeeding says nothing about rasterisation — draw into
+        // Glyph lookup succeeding says nothing about rasterisation, so draw into
         // an offscreen bitmap and count actual ink.
         func ink(_ label: String, _ draw: (NSGraphicsContext) -> Void) {
             let w = 260, h = 40
@@ -534,7 +534,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         case .canvas:
             let item = NSCustomTouchBarItem(identifier: identifier)
             // The bar sizes custom views from their constraints, so an explicit
-            // width is required — leaving it flexible collapses the view to 0pt.
+            // width is required. Leaving it flexible collapses the view to 0pt.
             if canvasWidthConstraint == nil {
                 let c = canvasView.widthAnchor.constraint(equalToConstant: activeWidth)
                 c.priority = .required
