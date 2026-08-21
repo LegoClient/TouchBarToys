@@ -23,6 +23,18 @@ No Xcode, no package manager, no dependencies.
 
 ## Install
 
+**Download** the latest build from
+[Releases](https://github.com/LegoClient/TouchBarToys/releases/latest), unzip,
+and drag it to `/Applications`. It's x86_64, because every Mac with a Touch Bar
+is an Intel Mac.
+
+macOS will refuse to open it the first time — the app is ad-hoc signed, not
+notarized. Open it once, let macOS block it, then go to **System Settings →
+Privacy & Security**, scroll down and click **Open Anyway**. Once only.
+
+**Or build it**, which takes about ten seconds and skips the Gatekeeper prompt
+entirely, because locally built apps are never quarantined:
+
 ```bash
 git clone https://github.com/LegoClient/TouchBarToys.git
 cd TouchBarToys && ./build.sh && cp -R build/TouchBarToys.app /Applications/
@@ -31,6 +43,19 @@ open /Applications/TouchBarToys.app
 
 The app is a menu-bar accessory — no Dock icon, no window. It ad-hoc signs
 itself during the build.
+
+### Cutting a release
+
+The release artifact has to be built on an Intel Mac (or cross-compiled) — CI
+runners are arm64, and an arm64 build is useless on Touch Bar hardware.
+
+```bash
+./build.sh
+ditto -c -k --sequesterRsrc --keepParent build/TouchBarToys.app TouchBarToys.zip
+gh release upload vX.Y.Z TouchBarToys.zip
+```
+
+`ditto` rather than `zip`, so the code signature survives the round trip.
 
 ## Use
 
