@@ -18,7 +18,7 @@ No Xcode, no package manager, no dependencies.
 ## Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/TouchBarToys.git
+git clone https://github.com/LegoClient/TouchBarToys.git
 cd TouchBarToys && ./build.sh && cp -R build/TouchBarToys.app /Applications/
 open /Applications/TouchBarToys.app
 ```
