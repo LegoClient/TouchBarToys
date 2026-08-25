@@ -2,7 +2,7 @@
 
 [![build](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml/badge.svg)](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml)
 
-Thirty-two pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
+Thirty-three pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
 demoscene effects, small games, and a few system monitors that are actually
 useful.
 
@@ -114,7 +114,8 @@ Pendulum Wave†, Tunnels†, LED Marquee†
 
 **Ambient.** Plasma†, Metaballs†, Aquarium†, Snowfall†, Aurora†, Mandelbrot†
 
-**System.** CPU Spectrum, Battery, Network, Memory & Disk, Clock†
+**System.** System Dashboard (all of the below at once), CPU Spectrum, Battery,
+Network, Memory & Disk, Clock†
 
 **Silly.** Hacker Terminal†, Almost Done†, Dominoes†
 
@@ -154,6 +155,11 @@ If you'd rather draw into the real `CGContext` at full resolution, conform to
 `Toy` directly; `DVDToy`, `ClockToy` and the system monitors all do that.
 `MicroFont` is a 3x5 pixel font for scores and labels, and `Text` draws crisp
 CoreText for anything bigger.
+
+Scenes that read live system state go through `SystemStats.shared`, which
+samples CPU, memory, disk, network and battery, each on its own cadence. Call
+`tick(dt:)` from `update` and read the properties; don't sample the counters
+yourself, or two scenes end up keeping separate deltas of the same numbers.
 
 ## Development
 

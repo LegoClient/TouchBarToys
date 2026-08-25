@@ -7,37 +7,16 @@ final class BatteryToy: Toy {
     let title = "Battery"
     let emoji = "🔋"
 
-    private var percent = 0.0
-    private var charging = false
-    private var plugged = false
-    private var minutes = -1
-    private var since = 9.0
     private var t = 0.0
+    private let stats = SystemStats.shared
+    private var percent: Double { stats.batteryLevel }
+    private var charging: Bool { stats.charging }
+    private var plugged: Bool { stats.plugged }
+    private var minutes: Int { stats.batteryMinutes }
 
     func update(dt: Double, size: CGSize) {
         t += dt
-        since += dt
-        if since >= 5 { since = 0; sample() }
-    }
-
-    private func sample() {
-        guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
-              let sources = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef]
-        else { return }
-        for source in sources {
-            guard let d = IOPSGetPowerSourceDescription(blob, source)?
-                .takeUnretainedValue() as? [String: Any] else { continue }
-            let cur = (d[kIOPSCurrentCapacityKey as String] as? Int) ?? 0
-            let max = (d[kIOPSMaxCapacityKey as String] as? Int) ?? 100
-            percent = max > 0 ? Double(cur) / Double(max) : 0
-            charging = (d[kIOPSIsChargingKey as String] as? Bool) ?? false
-            plugged = (d[kIOPSPowerSourceStateKey as String] as? String)
-                == (kIOPSACPowerValue as String)
-            let toEmpty = (d[kIOPSTimeToEmptyKey as String] as? Int) ?? -1
-            let toFull = (d[kIOPSTimeToFullChargeKey as String] as? Int) ?? -1
-            minutes = charging ? toFull : toEmpty
-            return
-        }
+        stats.tick(dt: dt)
     }
 
     func draw(in ctx: CGContext, size: CGSize) {

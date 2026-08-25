@@ -10,12 +10,11 @@ final class CPUToy: Toy {
     private let barCount = 56
     private var levels: [Double]
     private var peaks: [Double]
-    private var coreLoads: [Double] = []
-    private var previous: [(busy: Double, total: Double)] = []
-    private var sinceSample: Double = 1
     private var rng = RNG(seed: 0xC9FF)
-    private var total: Double = 0
     private var clock: Double = 0
+    private let stats = SystemStats.shared
+    private var coreLoads: [Double] { stats.coreLoads }
+    private var total: Double { stats.cpuTotal }
 
     init() {
         levels = [Double](repeating: 0, count: barCount)
@@ -24,8 +23,7 @@ final class CPUToy: Toy {
 
     func update(dt: Double, size: CGSize) {
         clock += dt
-        sinceSample += dt
-        if sinceSample >= 0.35 { sinceSample = 0; sample() }
+        stats.tick(dt: dt)
 
         for i in 0..<barCount {
             // map each bar onto a core, with a little per-bar noise so
@@ -47,41 +45,6 @@ final class CPUToy: Toy {
             levels[i] += (target - levels[i]) * min(1, rate * dt)
             peaks[i] = max(peaks[i] - dt * 0.42, levels[i])
         }
-    }
-
-    private func sample() {
-        var count: natural_t = 0
-        var info: processor_info_array_t?
-        var infoCount: mach_msg_type_number_t = 0
-        guard host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO,
-                                 &count, &info, &infoCount) == KERN_SUCCESS,
-              let info else { return }
-        defer {
-            vm_deallocate(mach_task_self_,
-                          vm_address_t(UInt(bitPattern: UnsafeMutableRawPointer(info))),
-                          vm_size_t(Int(infoCount) * MemoryLayout<integer_t>.stride))
-        }
-        let n = Int(count)
-        var loads = [Double](repeating: 0, count: n)
-        var snapshot = [(busy: Double, total: Double)]()
-        for i in 0..<n {
-            let base = i * Int(CPU_STATE_MAX)
-            let user = Double(info[base + Int(CPU_STATE_USER)])
-            let sys  = Double(info[base + Int(CPU_STATE_SYSTEM)])
-            let nice = Double(info[base + Int(CPU_STATE_NICE)])
-            let idle = Double(info[base + Int(CPU_STATE_IDLE)])
-            let busy = user + sys + nice
-            let tot = busy + idle
-            snapshot.append((busy: busy, total: tot))
-            if previous.count == n {
-                let db = busy - previous[i].busy
-                let dt = tot - previous[i].total
-                loads[i] = dt > 0 ? max(0, min(1, db / dt)) : 0
-            }
-        }
-        previous = snapshot
-        if !loads.isEmpty { coreLoads = loads }
-        total = coreLoads.isEmpty ? 0 : coreLoads.reduce(0, +) / Double(coreLoads.count)
     }
 
     func draw(in ctx: CGContext, size: CGSize) {

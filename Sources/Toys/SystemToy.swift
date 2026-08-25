@@ -7,47 +7,15 @@ final class SystemToy: Toy {
     let title = "Memory & Disk"
     let emoji = "💾"
 
-    private var wired = 0.0, active = 0.0, compressed = 0.0, free = 0.0
-    private var totalRAM = 0.0
-    private var diskUsed = 0.0, diskTotal = 0.0
-    private var since = 9.0
+    private let stats = SystemStats.shared
+    private var wired: Double { stats.wired }
+    private var active: Double { stats.active }
+    private var compressed: Double { stats.compressed }
+    private var totalRAM: Double { stats.totalRAM }
+    private var diskUsed: Double { stats.diskUsed }
+    private var diskTotal: Double { stats.diskTotal }
 
-    func update(dt: Double, size: CGSize) {
-        since += dt
-        guard since >= 2 else { return }
-        since = 0
-        sampleMemory()
-        sampleDisk()
-    }
-
-    private func sampleMemory() {
-        var stats = vm_statistics64()
-        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.stride /
-                                           MemoryLayout<integer_t>.stride)
-        let result = withUnsafeMutablePointer(to: &stats) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
-            }
-        }
-        guard result == KERN_SUCCESS else { return }
-        let page = Double(vm_kernel_page_size)
-        wired = Double(stats.wire_count) * page
-        active = Double(stats.active_count) * page
-        compressed = Double(stats.compressor_page_count) * page
-        free = (Double(stats.free_count) + Double(stats.inactive_count)) * page
-        totalRAM = Double(ProcessInfo.processInfo.physicalMemory)
-    }
-
-    private func sampleDisk() {
-        let url = URL(fileURLWithPath: "/")
-        guard let v = try? url.resourceValues(forKeys: [
-            .volumeAvailableCapacityForImportantUsageKey, .volumeTotalCapacityKey,
-        ]) else { return }
-        let total = Double(v.volumeTotalCapacity ?? 0)
-        let avail = Double(v.volumeAvailableCapacityForImportantUsage ?? 0)
-        diskTotal = total
-        diskUsed = max(0, total - avail)
-    }
+    func update(dt: Double, size: CGSize) { stats.tick(dt: dt) }
 
     func draw(in ctx: CGContext, size: CGSize) {
         ctx.setFillColor(CGColor(gray: 0.03, alpha: 1))

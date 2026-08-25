@@ -10,53 +10,23 @@ final class NetworkToy: Toy {
 
     private var down: [Double] = []
     private var up: [Double] = []
-    private var lastIn: UInt64 = 0
-    private var lastOut: UInt64 = 0
     private var since = 0.0
     private var peak = 64_000.0
-    private var rateIn = 0.0, rateOut = 0.0
     private let samples = 220
+    private let stats = SystemStats.shared
+    private var rateIn: Double { stats.netIn }
+    private var rateOut: Double { stats.netOut }
 
     init() {
         down = [Double](repeating: 0, count: samples)
         up = down
-        let (i, o) = Self.counters()
-        lastIn = i; lastOut = o
-    }
-
-    /// Sum of every non-loopback link-layer interface.
-    private static func counters() -> (UInt64, UInt64) {
-        var head: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&head) == 0, let start = head else { return (0, 0) }
-        defer { freeifaddrs(head) }
-        var bytesIn: UInt64 = 0, bytesOut: UInt64 = 0
-        var ptr: UnsafeMutablePointer<ifaddrs>? = start
-        while let cur = ptr {
-            defer { ptr = cur.pointee.ifa_next }
-            guard let addr = cur.pointee.ifa_addr,
-                  addr.pointee.sa_family == UInt8(AF_LINK),
-                  let raw = cur.pointee.ifa_data else { continue }
-            let name = String(cString: cur.pointee.ifa_name)
-            guard !name.hasPrefix("lo") else { continue }
-            let d = raw.assumingMemoryBound(to: if_data.self).pointee
-            bytesIn += UInt64(d.ifi_ibytes)
-            bytesOut += UInt64(d.ifi_obytes)
-        }
-        return (bytesIn, bytesOut)
     }
 
     func update(dt: Double, size: CGSize) {
+        stats.tick(dt: dt)
         since += dt
         guard since >= 0.35 else { return }
-        let window = since
         since = 0
-        let (i, o) = Self.counters()
-        // counters are cumulative and can wrap or reset
-        let dIn = i >= lastIn ? Double(i - lastIn) : 0
-        let dOut = o >= lastOut ? Double(o - lastOut) : 0
-        lastIn = i; lastOut = o
-        rateIn = dIn / window
-        rateOut = dOut / window
         down.append(rateIn); if down.count > samples { down.removeFirst() }
         up.append(rateOut); if up.count > samples { up.removeFirst() }
         let observed = max(down.max() ?? 0, up.max() ?? 0)
@@ -94,9 +64,8 @@ final class NetworkToy: Toy {
     }
 
     private static func rate(_ bytesPerSecond: Double) -> String {
-        let bits = bytesPerSecond
-        if bits > 1_000_000 { return String(format: "%.1f MB/s", bits / 1_000_000) }
-        if bits > 1_000 { return String(format: "%.0f KB/s", bits / 1_000) }
-        return String(format: "%.0f B/s", bits)
+        if bytesPerSecond > 1_000_000 { return String(format: "%.1f MB/s", bytesPerSecond / 1_000_000) }
+        if bytesPerSecond > 1_000 { return String(format: "%.0f KB/s", bytesPerSecond / 1_000) }
+        return String(format: "%.0f B/s", bytesPerSecond)
     }
 }
