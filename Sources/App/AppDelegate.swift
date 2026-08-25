@@ -72,7 +72,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private let stripKey = "showInControlStrip"
     private let fullScreenKey = "fullScreen"
     private let doubleTapKey = "doubleTapControls"
-    private let stayAwakeKey = "keepBarAwake"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -105,9 +104,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         if defaults.object(forKey: doubleTapKey) == nil {
             defaults.set(true, forKey: doubleTapKey)
         }
-        if defaults.object(forKey: stayAwakeKey) == nil {
-            defaults.set(true, forKey: stayAwakeKey)
-        }
 
         canvasView = ToyView(toy: toy)
         canvasView.doubleTapEnabled = defaults.bool(forKey: doubleTapKey)
@@ -139,7 +135,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         canvasView?.stop()
         dismiss()
-        StayAwake.end()
         if !devMode { DFR.setControlStripPresence(.strip, false) }
     }
 
@@ -627,7 +622,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     @objc private func present() {
         Log.write("present() called, active=\(NSApp.isActive)")
         canvasView.hideControls()
-        if defaults.bool(forKey: stayAwakeKey) { StayAwake.begin() }
         wantsBar = true
         presentBar(attempt: 0)
     }
@@ -679,7 +673,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
     private func dismiss() {
         Log.write("dismiss() isPresented=\(isPresented)")
-        StayAwake.end()
         wantsBar = false
         if let bar = modalBar {
             NSTouchBar.dismissSystemModalTouchBar(bar)
@@ -769,8 +762,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
         let groups = Toys.groups()
         var labels = ["Show on Touch Bar", "Keep Icon in Control Strip",
-                      "Full Screen", "Keep Bar Awake", "Double-Tap for Controls",
-                      "Edit Marquee Text…",
+                      "Full Screen", "Double-Tap for Controls", "Edit Marquee Text…",
                       "Launch at Login", "Quit"]
         labels += groups.flatMap { g in g.toys.map { "\($0.emoji)  \($0.title)" } }
         let w = MenuRowView.width(for: labels)
@@ -793,8 +785,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         strip.state = defaults.bool(forKey: stripKey) ? .on : .off
         let full = row(menu, "Full Screen", width: w, action: #selector(toggleFullScreen))
         full.state = fullScreen ? .on : .off
-        let awake = row(menu, "Keep Bar Awake", width: w, action: #selector(toggleStayAwake))
-        awake.state = defaults.bool(forKey: stayAwakeKey) ? .on : .off
         let dbl = row(menu, "Double-Tap for Controls", width: w, action: #selector(toggleDoubleTap))
         dbl.state = defaults.bool(forKey: doubleTapKey) ? .on : .off
         row(menu, "Edit Marquee Text…", width: w, action: #selector(editMarqueeText))
@@ -834,13 +824,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         defaults.set(!fullScreen, forKey: fullScreenKey)
         rebuildMenu()
         if isPresented { present() }        // rebuild the bar in the new mode
-    }
-
-    @objc private func toggleStayAwake() {
-        let on = !defaults.bool(forKey: stayAwakeKey)
-        defaults.set(on, forKey: stayAwakeKey)
-        if on, isPresented { StayAwake.begin() } else if !on { StayAwake.end() }
-        rebuildMenu()
     }
 
     @objc private func toggleDoubleTap() {

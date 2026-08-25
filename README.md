@@ -95,12 +95,6 @@ Menu options:
   line, and tapping the bar cycles through them. It's re-read every 2 seconds,
   so edits show up live. The 3x5 font covers A-Z, 0-9 and a little punctuation;
   anything else turns into a space.
-* **Keep Bar Awake.** Holds a `PreventUserIdleDisplaySleep` power assertion
-  while a scene is on the bar, and drops it the moment the scene is dismissed,
-  so the ordinary Touch Bar is never affected. Worth knowing: that's the same
-  idle timer that dims the main screen, so the screen stays on too while a
-  scene is up. macOS powers the Touch Bar down with the display, so there is no
-  assertion that keeps one awake without the other.
 * **Launch at Login.** Installs a user LaunchAgent. Not `SMAppService`, which
   wants a Developer ID signature.
 
@@ -304,6 +298,27 @@ a frame, and retries if not. It only shrinks the width once a straight retry has
 already failed, since a too-wide row won't fix itself on a retry but a stolen bar
 will. Menu rows also wait 0.3s after `cancelTracking()` before firing their
 action.
+
+### The Touch Bar dims after 47 seconds and you cannot stop it
+
+Not from a normal process, anyway. `DFRGetStatus()` reports 1 while the bar is
+lit and 5 once it has dimmed, which makes the behaviour measurable. Sampling it
+against `HIDIdleTime` from the `IOHIDSystem` registry entry gives a hard,
+repeatable threshold: the bar goes to 5 at 47.0s and 47.2s of HID idle across
+runs, and only a real HID event brings it back.
+
+Four approaches, all measured, none of which work:
+
+* A `PreventUserIdleDisplaySleep` power assertion. The bar still dimmed at 47s
+  with the assertion held. It governs display sleep, not the bar.
+* `IOPMAssertionDeclareUserActivity` on a 20s heartbeat. It does not reset
+  `HIDIdleTime`; idle kept climbing past 95s and the bar dimmed on schedule.
+* `DFRSetDimmingStep(0)` and `(1)` while dimmed. Status stayed 5.
+* `DFRSetStatus(1)` while dimmed. Returns 0 for success, status stayed 5.
+
+What is left is synthesising HID events, which needs Accessibility permission,
+moves the user's cursor, and keeps the main screen awake as a side effect. That
+is a bad trade for a screensaver, so there is no keep-awake option here.
 
 ### The Control Strip needs more than the API suggests
 
