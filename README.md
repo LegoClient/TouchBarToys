@@ -102,6 +102,13 @@ The app opens on System Dashboard each time. Its panels lay themselves out from
 the bar width, dropping a label or shrinking the clock rather than letting text
 collide, so it survives both the full-width and button-mode canvases.
 
+Its glow is drawn by stacking each shape a few times, larger and fainter each
+time, rather than with a CoreGraphics shadow. A shadowed transparency layer per
+group measured at 16% of a core for a bloom you could barely see; stacked fills
+are brighter and cost a third of that. Below about 3pt the shapes skip the
+rounded path entirely, since the rounding is invisible at that size and building
+a CGPath is the expensive part when there are hundreds of fills per frame.
+
 Animation only runs while the bar is open, so it costs nothing when idle.
 
 ## The scenes
@@ -118,8 +125,8 @@ Pendulum Wave†, Tunnels†, LED Marquee†
 
 **Ambient.** Plasma†, Metaballs†, Aquarium†, Snowfall†, Aurora†, Mandelbrot†
 
-**System.** System Dashboard (all of the below at once, and what the app opens
-on), CPU Spectrum, Battery, Network, Memory & Disk, Clock†
+**System.** System Dashboard (clock, CPU, network, RAM and battery at a glance,
+and what the app opens on), CPU Spectrum, Battery, Network, Memory & Disk, Clock†
 
 **Silly.** Hacker Terminal†, Almost Done†, Dominoes†
 
