@@ -102,11 +102,11 @@ The app opens on System Dashboard each time. Its panels lay themselves out from
 the bar width, dropping a label or shrinking the clock rather than letting text
 collide, so it survives both the full-width and button-mode canvases.
 
-There are two of it. `System Dashboard` blooms and drops the disk panel;
-`System Dashboard (Flat)` is the earlier flat look and keeps disk. Both are the
-same `DashboardToy` class registered twice with a different `Style`, so the
-layout and sampling stay in one place. The flat one is cheaper, 7.6% of a core
-against 10.9%.
+There are two of it, showing the same five panels. `System Dashboard` blooms,
+`System Dashboard (Flat)` doesn't. Both are the same `DashboardToy` registered
+twice with a different `Style`, so the layout and sampling stay in one place and
+the style only decides how shapes are drawn. The flat one is cheaper, 7.4% of a
+core against about 11%. Disk has its own scene rather than a dashboard panel.
 
 Its glow is drawn by stacking each shape a few times, larger and fainter each
 time, rather than with a CoreGraphics shadow. A shadowed transparency layer per
@@ -132,8 +132,8 @@ Pendulum Wave†, Tunnels†, LED Marquee†
 **Ambient.** Plasma†, Metaballs†, Aquarium†, Snowfall†, Aurora†, Mandelbrot†
 
 **System.** System Dashboard (clock, CPU, network, RAM and battery at a glance,
-and what the app opens on), System Dashboard (Flat) (the same panels drawn flat,
-with a disk panel too), CPU Spectrum, Battery, Network, Memory & Disk, Clock†
+and what the app opens on), System Dashboard (Flat) (the same panels, drawn
+flat), CPU Spectrum, Battery, Network, Memory & Disk, Clock†
 
 **Silly.** Hacker Terminal†, Almost Done†, Dominoes†
 

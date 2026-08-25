@@ -1,15 +1,14 @@
 import CoreGraphics
 import Foundation
 
-/// Every System scene at once: clock, CPU, memory, disk, network and battery,
-/// each in its own panel across the bar.
+/// Clock, CPU, network, memory and battery, each in its own panel across the
+/// bar. Disk lives in its own scene rather than here.
 final class DashboardToy: Toy {
     /// Two presentations of the same panels, registered as separate scenes so
     /// they can be switched between.
+    /// Same panels either way; the style only decides how they are drawn.
     enum Style {
-        /// Five panels, bloomed. No disk.
         case glow
-        /// The earlier flat look, disk panel included.
         case flat
     }
 
@@ -66,8 +65,7 @@ final class DashboardToy: Toy {
         // crowd everything else on the narrower, button-mode canvas
         let clockW = min(96, max(64, size.width * 0.095))
         let battW = min(98, max(68, size.width * 0.098))
-        let gaps: CGFloat = style == .flat ? 5 : 4
-        let flexible = size.width - pad * 2 - gap * gaps - clockW - battW
+        let flexible = size.width - pad * 2 - gap * 4 - clockW - battW
         guard flexible > 80 else { return }
 
         var x = pad
@@ -77,23 +75,17 @@ final class DashboardToy: Toy {
             return r
         }
 
-        var panels: [CGRect] = [advance(clockW)]
-        if style == .flat {
-            panels += [advance(flexible * 0.34), advance(flexible * 0.28),
-                       advance(flexible * 0.22), advance(flexible * 0.16)]
-        } else {
-            panels += [advance(flexible * 0.40), advance(flexible * 0.33),
-                       advance(flexible * 0.27)]
-        }
-        panels.append(advance(battW))
+        let panels = [
+            advance(clockW), advance(flexible * 0.40), advance(flexible * 0.33),
+            advance(flexible * 0.27), advance(battW),
+        ]
         for r in panels { card(ctx, r) }
 
         clock(ctx, panels[0])
         cpu(ctx, panels[1])
         network(ctx, panels[2])
         memory(ctx, panels[3])
-        if style == .flat { disk(ctx, panels[4]) }
-        battery(ctx, panels[panels.count - 1])
+        battery(ctx, panels[4])
     }
 
     // MARK: - Panel furniture
@@ -307,19 +299,6 @@ final class DashboardToy: Toy {
             x += w
         }
         ctx.restoreGState()
-    }
-
-    private func disk(_ ctx: CGContext, _ r: CGRect) {
-        let freeGB = (stats.diskTotal - stats.diskUsed) / 1_000_000_000
-        let frac = stats.diskTotal > 0 ? stats.diskUsed / stats.diskTotal : 0
-        let area = header(ctx, r, "DISK", String(format: "%.0fG", freeGB),
-                          CGColor(gray: 0.84, alpha: 1))
-        capsule(ctx, area, CGColor(gray: 0.16, alpha: 1))
-        lit(ctx, CGRect(x: area.minX, y: area.minY,
-                        width: max(area.height, area.width * CGFloat(frac)),
-                        height: area.height),
-            frac > 0.9 ? CGColor(red: 1.0, green: 0.35, blue: 0.3, alpha: 1)
-                       : CGColor(red: 0.55, green: 0.85, blue: 0.55, alpha: 1))
     }
 
     private func battery(_ ctx: CGContext, _ r: CGRect) {
