@@ -98,6 +98,10 @@ Menu options:
 * **Launch at Login.** Installs a user LaunchAgent. Not `SMAppService`, which
   wants a Developer ID signature.
 
+The app opens on System Dashboard each time. Its panels lay themselves out from
+the bar width, dropping a label or shrinking the clock rather than letting text
+collide, so it survives both the full-width and button-mode canvases.
+
 Animation only runs while the bar is open, so it costs nothing when idle.
 
 ## The scenes
@@ -114,8 +118,8 @@ Pendulum Wave†, Tunnels†, LED Marquee†
 
 **Ambient.** Plasma†, Metaballs†, Aquarium†, Snowfall†, Aurora†, Mandelbrot†
 
-**System.** System Dashboard (all of the below at once), CPU Spectrum, Battery,
-Network, Memory & Disk, Clock†
+**System.** System Dashboard (all of the below at once, and what the app opens
+on), CPU Spectrum, Battery, Network, Memory & Disk, Clock†
 
 **Silly.** Hacker Terminal†, Almost Done†, Dominoes†
 

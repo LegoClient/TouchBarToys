@@ -94,8 +94,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
             return
         }
 
-        if let saved = defaults.string(forKey: toyKey),
-           let i = toys.firstIndex(where: { $0.title == saved }) {
+        // Always open on the dashboard, whatever was showing last time.
+        if let i = toys.firstIndex(where: { $0 is DashboardToy }) {
+            index = i
+        } else if let saved = defaults.string(forKey: toyKey),
+                  let i = toys.firstIndex(where: { $0.title == saved }) {
             index = i
         }
         if defaults.object(forKey: stripKey) == nil {
