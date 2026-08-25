@@ -119,8 +119,8 @@ Animation only runs while the bar is open, so it costs nothing when idle.
 
 ## The scenes
 
-**Now Playing.** Spotify (album art, track, artist, elapsed and remaining, with
-the progress bar tinted from the cover)
+**Now Playing.** Spotify (album art, track, artist, elapsed and remaining, and a
+waveform scrubber tinted from the cover)
 
 **Classics.** Rainbow Pop-Tart Cat, DVD Bounce (it counts real corner hits),
 Matrix Rain, Doom Fire†, Hyperspace†
@@ -338,6 +338,14 @@ before the `tell` block, because a bare `tell` **launches Spotify** just by
 asking it a question. And `player position` comes back formatted in the user's
 locale, so on a Danish system it reads `6,929999828339` and `Double()` returns
 nil on it; the comma has to be swapped for a period before parsing.
+
+The waveform is derived from the track title, so every song gets a distinct
+shape that stays put while it plays. It is deliberately not sampled audio: with
+no loopback device installed, hearing the real output would mean either the
+microphone (useless on headphones) or ScreenCaptureKit, which wants Screen
+Recording permission and parks a recording indicator in the menu bar. That is
+a lot to ask of a music visualiser, so the shape is synthetic and the timeline
+underneath it is real.
 
 It needs Automation permission, which macOS prompts for on first use. Because
 the app is ad-hoc signed, its signature changes on every rebuild, so macOS may

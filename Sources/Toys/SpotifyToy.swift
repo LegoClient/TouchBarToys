@@ -10,6 +10,8 @@ final class SpotifyToy: Toy {
     private var t = 0.0
     private var levels: [Double] = [0.4, 0.7, 0.55]
     private var scroll = 0.0
+    private var waveTrack = ""
+    private var wave: [Double] = []
 
     func update(dt: Double, size: CGSize) {
         t += dt
@@ -132,34 +134,85 @@ final class SpotifyToy: Toy {
         Text.draw("-" + left, in: ctx, at: CGPoint(x: x1, y: midY - 3.5),
                   size: 8.5, color: CGColor(gray: 0.72, alpha: 1), align: .right)
 
-        let barX = x0 + 32
-        let barW = (x1 - 34) - barX
-        guard barW > 20 else { return }
-        let track = CGRect(x: barX, y: midY - 2.5, width: barW, height: 5)
-        ctx.setFillColor(CGColor(gray: 0.19, alpha: 1))
-        ctx.addPath(CGPath(roundedRect: track, cornerWidth: 2.5, cornerHeight: 2.5,
-                           transform: nil))
-        ctx.fillPath()
+        let area = CGRect(x: x0 + 32, y: midY - 11, width: (x1 - 34) - (x0 + 32), height: 22)
+        guard area.width > 24 else { return }
+        waveform(ctx, area, snapshot: s)
+    }
 
-        let frac = s.duration > 0 ? CGFloat(min(1, s.position / s.duration)) : 0
-        let filled = CGRect(x: track.minX, y: track.minY, width: max(5, track.width * frac),
-                            height: track.height)
-        // a soft halo under the played portion, same trick as the dashboard
-        if let halo = s.accent.copy(alpha: 0.30) {
-            ctx.setFillColor(halo)
-            let glow = filled.insetBy(dx: -2.5, dy: -2.5)
-            ctx.addPath(CGPath(roundedRect: glow, cornerWidth: 5, cornerHeight: 5,
-                               transform: nil))
-            ctx.fillPath()
+    /// A SoundCloud-style waveform. The shape is derived from the track title,
+    /// so every song gets its own and it stays put while that song plays. It is
+    /// not sampled audio: with no loopback device, hearing the actual output
+    /// would mean Screen Recording permission and a recording indicator sitting
+    /// in the menu bar, which is a lot to ask of a music visualiser.
+    private func waveform(_ ctx: CGContext, _ area: CGRect,
+                          snapshot s: (state: NowPlaying.State, track: String, artist: String,
+                                       duration: Double, position: Double, artwork: CGImage?,
+                                       accent: CGColor, problem: String?)) {
+        let slot: CGFloat = 3.4
+        let count = max(8, Int(area.width / slot))
+        let bars = shape(for: s.track, count: count)
+        let barW = max(1.4, slot - 1.3)
+        let half = area.height / 2
+        let frac = s.duration > 0 ? min(1, s.position / s.duration) : 0
+        let playedTo = Double(count) * frac
+        let playing = s.state == .playing
+
+        for i in 0..<count {
+            var v = bars[i]
+            // bars just around the playhead breathe, so it reads as alive
+            let distance = abs(Double(i) - playedTo)
+            if playing, distance < 9 {
+                let nearness = 1 - distance / 9
+                v *= 1 + 0.30 * nearness * sin(t * 11 - Double(i) * 0.7)
+            }
+            let h = max(1.2, CGFloat(min(1.15, v)) * half)
+            let x = area.minX + CGFloat(i) * slot
+            let played = Double(i) <= playedTo
+            let rect = CGRect(x: x, y: area.midY - h, width: barW, height: h * 2)
+
+            if played {
+                if let halo = s.accent.copy(alpha: 0.22) {
+                    ctx.setFillColor(halo)
+                    ctx.fill(rect.insetBy(dx: -1.6, dy: -1.6))
+                }
+                ctx.setFillColor(s.accent)
+            } else {
+                ctx.setFillColor(CGColor(gray: 0.26, alpha: 1))
+            }
+            ctx.fill(rect)
         }
-        ctx.setFillColor(s.accent)
-        ctx.addPath(CGPath(roundedRect: filled, cornerWidth: 2.5, cornerHeight: 2.5,
-                           transform: nil))
-        ctx.fillPath()
 
         // playhead
-        ctx.setFillColor(CGColor(gray: 0.98, alpha: 1))
-        ctx.fillEllipse(in: CGRect(x: filled.maxX - 4, y: midY - 4, width: 8, height: 8))
+        let px = area.minX + CGFloat(playedTo) * slot
+        ctx.setFillColor(CGColor(gray: 1, alpha: 0.9))
+        ctx.fill(CGRect(x: px - 0.75, y: area.minY - 1, width: 1.5, height: area.height + 2))
+    }
+
+    /// Deterministic per-track shape: an arc envelope with a couple of dips,
+    /// roughened by a seeded RNG so it looks like a real track rather than noise.
+    private func shape(for track: String, count: Int) -> [Double] {
+        if waveTrack == track, wave.count == count { return wave }
+        var rng = RNG(seed: Self.hash(track))
+        var out = [Double](repeating: 0, count: count)
+        for i in 0..<count {
+            let x = Double(i) / Double(max(1, count - 1))
+            let arc = sin(x * .pi)
+            let verses = 0.16 * sin(x * .pi * 6 + 0.7) + 0.10 * sin(x * .pi * 13 + 2.1)
+            let envelope = 0.34 + 0.48 * arc + verses
+            out[i] = max(0.07, min(1.0, envelope * rng.range(0.45, 1.0)))
+        }
+        wave = out
+        waveTrack = track
+        return out
+    }
+
+    private static func hash(_ s: String) -> UInt64 {
+        var h: UInt64 = 0xcbf2_9ce4_8422_2325
+        for b in s.utf8 {
+            h ^= UInt64(b)
+            h = h &* 0x100_0000_01b3
+        }
+        return h | 1
     }
 
     // MARK: - Helpers
