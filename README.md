@@ -68,6 +68,18 @@ Strip at the right of the Touch Bar.
 | Tap the Control Strip icon | same as left-clicking the menu bar icon |
 | `◀` `▶` on the bar | previous / next scene |
 | `✕` on the bar | close |
+| Double-tap the bar | show or hide the brightness and volume sliders |
+
+Double-tapping a scene brings up sliders for screen brightness and output
+volume, drawn over the dimmed scene. Drag either one, tap the speaker to mute,
+and double-tap again (or hit the X) to go back to the scene. Brightness never
+goes below 5%, because with a scene covering the bar the Control Strip's
+brightness keys aren't reachable, so a slider that bottomed out at zero would
+leave no visible way back.
+
+Taps still reach the scene as they happen, which keeps games responsive but
+means rapid tapping can trip the gesture. Turn it off under Double-Tap for
+Controls if that gets annoying in Flap.
 
 Menu options:
 
@@ -82,6 +94,12 @@ Menu options:
   line, and tapping the bar cycles through them. It's re-read every 2 seconds,
   so edits show up live. The 3x5 font covers A-Z, 0-9 and a little punctuation;
   anything else turns into a space.
+* **Keep Bar Awake.** Holds a `PreventUserIdleDisplaySleep` power assertion
+  while a scene is on the bar, and drops it the moment the scene is dismissed,
+  so the ordinary Touch Bar is never affected. Worth knowing: that's the same
+  idle timer that dims the main screen, so the screen stays on too while a
+  scene is up. macOS powers the Touch Bar down with the display, so there is no
+  assertion that keeps one awake without the other.
 * **Launch at Login.** Installs a user LaunchAgent. Not `SMAppService`, which
   wants a Developer ID signature.
 
@@ -155,6 +173,25 @@ swiftc -O -o build/render Sources/Toys/*.swift Sources/Render/main.swift
 ./build/render x --bench    # per-frame cost of every scene
 ```
 
+You can also screenshot the real Touch Bar, which `screencapture` cannot do:
+
+```bash
+swiftc -O -o build/barshot Sources/Tools/barshot.swift
+./build/barshot out.png
+```
+
+`DFRDisplayStreamCreate` hands out a display stream for the bar, and
+`CGDisplayStreamStart` still works if you resolve it with `dlsym` (the SDK
+marks it unavailable in favour of ScreenCaptureKit). It captures the composited
+frame at 2008x60, so it shows what is being drawn but tells you nothing about
+the backlight. Pair it with `--present <seconds>` to hold a scene up while you
+photograph it:
+
+```bash
+./build/TouchBarToys.app/Contents/MacOS/TouchBarToys --present 12 --toy aurora &
+sleep 4 && ./build/barshot /tmp/bar.png
+```
+
 At 30fps the heaviest scene (Mandelbrot) is about 10% of one core, and most are
 under 1%. Anything above 10% in `--bench` is worth a look.
 
@@ -174,6 +211,9 @@ this project were invisible:
 | `--menumock` | renders the menu rows offscreen to `/tmp/tbt-menu-mock.png` |
 | `--fontprobe` | glyph lookup, plus rasterised ink counts |
 | `--menushot` | captures live windows (unreliable for text, see below) |
+| `--controls` | round-trips a brightness and volume change, then renders the slider panel |
+| `--testgesture` | drives the double-tap gesture through the real input path |
+| `--present <s>` | presents a scene and holds it, for use with `barshot` |
 
 Every launch also writes a trace to `~/Library/Logs/TouchBarToys.log`.
 

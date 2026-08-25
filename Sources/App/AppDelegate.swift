@@ -70,6 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private let toyKey = "selectedToy"
     private let stripKey = "showInControlStrip"
     private let fullScreenKey = "fullScreen"
+    private let doubleTapKey = "doubleTapControls"
+    private let stayAwakeKey = "keepBarAwake"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -99,8 +101,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         if defaults.object(forKey: stripKey) == nil {
             defaults.set(true, forKey: stripKey)
         }
+        if defaults.object(forKey: doubleTapKey) == nil {
+            defaults.set(true, forKey: doubleTapKey)
+        }
+        if defaults.object(forKey: stayAwakeKey) == nil {
+            defaults.set(true, forKey: stayAwakeKey)
+        }
 
         canvasView = ToyView(toy: toy)
+        canvasView.doubleTapEnabled = defaults.bool(forKey: doubleTapKey)
         canvasView.onWindowChange = { [weak self] attached in
             Log.write("canvas window \(attached ? "attached" : "detached")")
             guard let self, !attached else { return }
@@ -121,11 +130,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         if CommandLine.arguments.contains("--testmenu") { runMenuActionTest() }
         if CommandLine.arguments.contains("--buttonshot") { runButtonShot() }
         if CommandLine.arguments.contains("--testbuttons") { runButtonWiringTest() }
+        if CommandLine.arguments.contains("--controls") { runControlsTest() }
+        if CommandLine.arguments.contains("--testgesture") { runGestureTest() }
+        if CommandLine.arguments.contains("--present") { runPresentMode() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         canvasView?.stop()
         dismiss()
+        StayAwake.end()
         if !devMode { DFR.setControlStripPresence(.strip, false) }
     }
 
@@ -222,6 +235,150 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
                 }
             }
         }
+    }
+
+    /// Presents the bar and holds it, so `barshot` can photograph it.
+    /// `--present <seconds> [--panel]` then exits.
+    private func runPresentMode() {
+        devMode = true
+        let args = CommandLine.arguments
+        let seconds = args.firstIndex(of: "--present").flatMap { i -> Double? in
+            i + 1 < args.count ? Double(args[i + 1]) : nil
+        } ?? 12
+        if let name = args.firstIndex(of: "--toy").flatMap({ i -> String? in
+            i + 1 < args.count ? args[i + 1] : nil
+        }), let idx = toys.firstIndex(where: { $0.title.lowercased().contains(name.lowercased()) }) {
+            select(idx)
+        }
+        present()
+        if args.contains("--panel") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                let mid = CGPoint(x: self.canvasView.bounds.midX, y: 15)
+                self.canvasView.began(at: mid)
+                self.canvasView.began(at: mid)
+                Log.write("present mode: opened control panel")
+            }
+        }
+        print("holding the bar for \(seconds)s with \(toy.title)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+            self.dismiss()
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Exercises the double-tap gesture through the real input path. Touch Bar
+    /// touches can't be synthesised from here, so this drives the same entry
+    /// point the touch handlers call.
+    private func runGestureTest() {
+        devMode = true
+        canvasView.setFrameSize(NSSize(width: 812, height: 30))
+        canvasView.doubleTapEnabled = true
+        var failures = 0
+        func check(_ label: String, _ got: Bool, _ want: Bool) {
+            let ok = got == want
+            if !ok { failures += 1 }
+            print("  \(ok ? "ok  " : "FAIL") \(label): showControls=\(got), expected \(want)")
+        }
+        let mid = CGPoint(x: 400, y: 15)
+
+        print("two taps 80ms apart should open it")
+        canvasView.began(at: mid)
+        Thread.sleep(forTimeInterval: 0.08)
+        canvasView.began(at: mid)
+        check("after fast double tap", canvasView.showControls, true)
+
+        print("two taps 500ms apart should not close it")
+        canvasView.began(at: CGPoint(x: 300, y: 15))
+        Thread.sleep(forTimeInterval: 0.5)
+        canvasView.began(at: CGPoint(x: 300, y: 15))
+        check("after slow taps", canvasView.showControls, true)
+
+        print("a second fast double tap should close it")
+        canvasView.began(at: CGPoint(x: 120, y: 15))
+        Thread.sleep(forTimeInterval: 0.08)
+        canvasView.began(at: CGPoint(x: 120, y: 15))
+        check("after second double tap", canvasView.showControls, false)
+
+        print("taps far apart in space should not count as a double tap")
+        canvasView.began(at: CGPoint(x: 100, y: 15))
+        Thread.sleep(forTimeInterval: 0.08)
+        canvasView.began(at: CGPoint(x: 700, y: 15))
+        check("after spread-out taps", canvasView.showControls, false)
+
+        print("the close button should dismiss it")
+        canvasView.began(at: mid)
+        Thread.sleep(forTimeInterval: 0.08)
+        canvasView.began(at: mid)
+        canvasView.began(at: CGPoint(x: 812 - 21, y: 15))   // the X
+        check("after tapping close", canvasView.showControls, false)
+
+        print("with the gesture disabled, double tapping does nothing")
+        canvasView.doubleTapEnabled = false
+        canvasView.began(at: mid)
+        Thread.sleep(forTimeInterval: 0.08)
+        canvasView.began(at: mid)
+        check("gesture off", canvasView.showControls, false)
+
+        print(failures == 0 ? "RESULT: gesture behaves" : "RESULT: FAILED (\(failures))")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { NSApp.terminate(nil) }
+    }
+
+    /// Reads brightness and volume, nudges each by 1% to prove the write path
+    /// works, restores the original value, then renders the panel to a PNG.
+    private func runControlsTest() {
+        devMode = true
+        print("brightness available: \(SystemControls.brightnessAvailable)")
+        print("volume available:     \(SystemControls.volumeAvailable)")
+
+        let b0 = SystemControls.brightness
+        let v0 = SystemControls.volume
+        let m0 = SystemControls.muted
+        print(String(format: "read   brightness=%.3f volume=%.3f muted=%@", b0, v0,
+                     m0 ? "yes" : "no"))
+
+        let bTest = min(0.95, max(SystemControls.minimumBrightness, b0 + 0.01))
+        SystemControls.brightness = bTest
+        let bBack = SystemControls.brightness
+        SystemControls.brightness = b0
+        print(String(format: "write  brightness %.3f -> read back %.3f  (%@), restored to %.3f",
+                     bTest, bBack, abs(bBack - bTest) < 0.02 ? "OK" : "MISMATCH",
+                     SystemControls.brightness))
+
+        let vTest = min(0.95, max(0.0, v0 + 0.01))
+        SystemControls.volume = vTest
+        let vBack = SystemControls.volume
+        SystemControls.volume = v0
+        SystemControls.muted = m0
+        print(String(format: "write  volume     %.3f -> read back %.3f  (%@), restored to %.3f",
+                     vTest, vBack, abs(vBack - vTest) < 0.02 ? "OK" : "MISMATCH",
+                     SystemControls.volume))
+
+        // draw the panel offscreen at both bar widths
+        for (name, width) in [("buttons", 812.0), ("fullscreen", 1050.0)] {
+            let size = CGSize(width: width, height: 30)
+            let scale: CGFloat = 2
+            guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil,
+                                             pixelsWide: Int(size.width * scale),
+                                             pixelsHigh: Int(size.height * scale),
+                                             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                             isPlanar: false, colorSpaceName: .deviceRGB,
+                                             bytesPerRow: 0, bitsPerPixel: 0),
+                  let g = NSGraphicsContext(bitmapImageRep: rep) else { continue }
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = g
+            g.cgContext.scaleBy(x: scale, y: scale)
+            g.cgContext.setFillColor(CGColor(gray: 0.04, alpha: 1))
+            g.cgContext.fill(CGRect(origin: .zero, size: size))
+            let panel = ControlPanel()
+            panel.refresh()
+            panel.draw(in: g.cgContext, size: size)
+            NSGraphicsContext.restoreGraphicsState()
+            if let data = rep.representation(using: .png, properties: [:]) {
+                try? data.write(to: URL(fileURLWithPath: "/tmp/tbt-panel-\(name).png"))
+                print("wrote /tmp/tbt-panel-\(name).png")
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { NSApp.terminate(nil) }
     }
 
     /// Renders the drawn buttons offscreen so they can actually be looked at.
@@ -468,6 +625,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
     @objc private func present() {
         Log.write("present() called, active=\(NSApp.isActive)")
+        canvasView.hideControls()
+        if defaults.bool(forKey: stayAwakeKey) { StayAwake.begin() }
         wantsBar = true
         presentBar(attempt: 0)
     }
@@ -519,6 +678,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
     private func dismiss() {
         Log.write("dismiss() isPresented=\(isPresented)")
+        StayAwake.end()
         wantsBar = false
         if let bar = modalBar {
             NSTouchBar.dismissSystemModalTouchBar(bar)
@@ -608,7 +768,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
         let groups = Toys.groups()
         var labels = ["Show on Touch Bar", "Keep Icon in Control Strip",
-                      "Full Screen", "Edit Marquee Text…", "Launch at Login", "Quit"]
+                      "Full Screen", "Keep Bar Awake", "Double-Tap for Controls",
+                      "Edit Marquee Text…",
+                      "Launch at Login", "Quit"]
         labels += groups.flatMap { g in g.toys.map { "\($0.emoji)  \($0.title)" } }
         let w = MenuRowView.width(for: labels)
 
@@ -630,6 +792,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         strip.state = defaults.bool(forKey: stripKey) ? .on : .off
         let full = row(menu, "Full Screen", width: w, action: #selector(toggleFullScreen))
         full.state = fullScreen ? .on : .off
+        let awake = row(menu, "Keep Bar Awake", width: w, action: #selector(toggleStayAwake))
+        awake.state = defaults.bool(forKey: stayAwakeKey) ? .on : .off
+        let dbl = row(menu, "Double-Tap for Controls", width: w, action: #selector(toggleDoubleTap))
+        dbl.state = defaults.bool(forKey: doubleTapKey) ? .on : .off
         row(menu, "Edit Marquee Text…", width: w, action: #selector(editMarqueeText))
         let login = row(menu, "Launch at Login", width: w, action: #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
@@ -667,6 +833,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         defaults.set(!fullScreen, forKey: fullScreenKey)
         rebuildMenu()
         if isPresented { present() }        // rebuild the bar in the new mode
+    }
+
+    @objc private func toggleStayAwake() {
+        let on = !defaults.bool(forKey: stayAwakeKey)
+        defaults.set(on, forKey: stayAwakeKey)
+        if on, isPresented { StayAwake.begin() } else if !on { StayAwake.end() }
+        rebuildMenu()
+    }
+
+    @objc private func toggleDoubleTap() {
+        let on = !defaults.bool(forKey: doubleTapKey)
+        defaults.set(on, forKey: doubleTapKey)
+        canvasView.doubleTapEnabled = on
+        if !on { canvasView.hideControls() }
+        rebuildMenu()
     }
 
     /// Opens the marquee's text file in whatever edits .txt. A file rather than
