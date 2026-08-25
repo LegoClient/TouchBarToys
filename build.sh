@@ -29,6 +29,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleVersion</key>           <string>1</string>
   <key>LSMinimumSystemVersion</key>    <string>11.0</string>
   <key>LSUIElement</key>               <true/>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Touch Bar Toys reads what Spotify is playing so it can show it on the Touch Bar.</string>
   <key>NSHighResolutionCapable</key>   <true/>
 </dict>
 </plist>

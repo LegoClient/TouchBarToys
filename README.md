@@ -2,7 +2,7 @@
 
 [![build](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml/badge.svg)](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml)
 
-Thirty-four pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
+Thirty-five pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
 demoscene effects, small games, and a few system monitors that are actually
 useful.
 
@@ -118,6 +118,9 @@ a CGPath is the expensive part when there are hundreds of fills per frame.
 Animation only runs while the bar is open, so it costs nothing when idle.
 
 ## The scenes
+
+**Now Playing.** Spotify (album art, track, artist, elapsed and remaining, with
+the progress bar tinted from the cover)
 
 **Classics.** Rainbow Pop-Tart Cat, DVD Bounce (it counts real corner hits),
 Matrix Rain, Doom Fire†, Hyperspace†
@@ -322,6 +325,24 @@ a frame, and retries if not. It only shrinks the width once a straight retry has
 already failed, since a too-wide row won't fix itself on a retry but a stolen bar
 will. Menu rows also wait 0.3s after `cancelTracking()` before firing their
 action.
+
+### Now-playing info needs Spotify's AppleScript, not MediaRemote
+
+`MRMediaRemoteGetNowPlayingInfo` would be the better source: artwork included,
+no permission prompt, and it covers any player rather than one. Apple gated it
+behind an entitlement in macOS 15.4, and on 26.1 it returns a nil dictionary, so
+the Spotify scene goes through Spotify's own AppleScript interface instead.
+
+Two things that bite there. The script checks `application "Spotify" is running`
+before the `tell` block, because a bare `tell` **launches Spotify** just by
+asking it a question. And `player position` comes back formatted in the user's
+locale, so on a Danish system it reads `6,929999828339` and `Double()` returns
+nil on it; the comma has to be swapped for a period before parsing.
+
+It needs Automation permission, which macOS prompts for on first use. Because
+the app is ad-hoc signed, its signature changes on every rebuild, so macOS may
+ask again after you rebuild. `TBT_FAKE_NOWPLAYING=1` renders the scene with
+sample data if you want to work on the layout without a player running.
 
 ### The Touch Bar dims after 47 seconds and you cannot stop it
 
