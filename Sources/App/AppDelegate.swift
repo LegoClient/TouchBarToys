@@ -50,13 +50,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
             .map { CGFloat($0) } ?? 812
     private var widthFullScreen: CGFloat =
         ProcessInfo.processInfo.environment["TBT_FULL_WIDTH"].flatMap { Double($0) }
-            .map { CGFloat($0) } ?? 1050
+            .map { CGFloat($0) } ?? 1004
 
-    /// Note on 1050: the zero-frames check can't calibrate this one. With a
-    /// single item the bar clips an oversize canvas instead of refusing to lay
-    /// it out, so even 1400pt "draws fine" while running off the edge. The
-    /// figure is derived from the button-mode measurements instead. A total
-    /// item row of ~1070pt laid out and ~1080pt did not.
+    /// 1004pt is the width of the bar itself, measured from a `barshot`
+    /// capture (2008 physical pixels at 2x). The zero-frames check can't
+    /// calibrate this one: with a single item the bar clips an oversize canvas
+    /// rather than refusing to lay it out, so even 1400pt "draws fine" while
+    /// running off the edge. An earlier guess of 1050 did exactly that, and
+    /// pushed the panel's close button off the end.
     private var fullScreen: Bool { defaults.bool(forKey: fullScreenKey) }
 
     /// The width in use for the current mode. Shrinking on a failed layout has

@@ -71,8 +71,9 @@ Strip at the right of the Touch Bar.
 | Double-tap the bar | show or hide the brightness and volume sliders |
 
 Double-tapping a scene brings up sliders for screen brightness and output
-volume, drawn over the dimmed scene. Drag either one, tap the speaker to mute,
-and double-tap again (or hit the X) to go back to the scene. Brightness never
+volume, right-aligned so the scene stays visible down the left of the bar. Drag
+either one, tap the speaker to mute, and double-tap again (or hit the X) to go
+back to the scene. Brightness never
 goes below 5%, because with a scene covering the bar the Control Strip's
 brightness keys aren't reachable, so a slider that bottomed out at zero would
 leave no visible way back.
@@ -285,9 +286,13 @@ added, which is the default.
 Full-screen mode can't be calibrated the same way. With a single item the bar
 clips an oversize canvas instead of refusing it, so a 1400pt canvas still
 reports a healthy 30fps while running off the edge, and the zero-frames check is
-blind to it. The 1050pt figure comes from the button-mode measurements instead:
-a total item row of about 1070pt laid out, and about 1080pt did not.
+blind to it. It was set to 1050pt for a while, inferred from the button-mode
+measurements, and that quietly ran 46pt off the end. A `barshot` capture settles
+it: the bar is 2008 physical pixels at 2x, so 1004pt is the whole of it.
 `TBT_CANVAS_WIDTH` and `TBT_FULL_WIDTH` override both for tuning.
+
+The lesson is that inference was worth less than one screenshot. If something
+looks wrong on the bar, capture it.
 
 ### Presenting the bar is not reliable
 

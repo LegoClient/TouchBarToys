@@ -38,34 +38,40 @@ final class ControlPanel {
         var brightIcon: CGRect, brightTrack: CGRect, brightLabel: CGPoint
         var volIcon: CGRect, volTrack: CGRect, volLabel: CGPoint
         var close: CGRect
-        var midX: CGFloat
     }
 
+    /// Both groups are half the width they'd need to fill the bar, and sit
+    /// hard against the right end. The left of the bar stays clear so the
+    /// scene behind is still visible.
     private func layout(_ size: CGSize) -> Layout {
         let h = size.height
         let closeW: CGFloat = 18
         let close = CGRect(x: size.width - closeW - 12, y: (h - closeW) / 2,
                            width: closeW, height: closeW)
-        let available = close.minX - 12 - 12
         let gap: CGFloat = 20
-        let groupW = (available - gap) / 2
         let trackH: CGFloat = 8
         let labelW: CGFloat = 42
+        let iconW: CGFloat = 26
+
+        let fullWidth = (close.minX - 24 - gap) / 2
+        let groupW = max(iconW + labelW + 80, fullWidth / 2)
+
+        // right-aligned: volume butts up against the close button
+        let volX = close.minX - 12 - groupW
+        let brightX = volX - gap - groupW
 
         func group(_ x: CGFloat) -> (CGRect, CGRect, CGPoint) {
             let icon = CGRect(x: x, y: (h - 18) / 2, width: 18, height: 18)
-            let trackX = x + 26
-            let trackW = groupW - 26 - labelW
-            let track = CGRect(x: trackX, y: (h - trackH) / 2, width: trackW, height: trackH)
+            let track = CGRect(x: x + iconW, y: (h - trackH) / 2,
+                               width: groupW - iconW - labelW, height: trackH)
             let label = CGPoint(x: x + groupW, y: h / 2 - 4)
             return (icon, track, label)
         }
 
-        let (bi, bt, bl) = group(12)
-        let (vi, vt, vl) = group(12 + groupW + gap)
+        let (bi, bt, bl) = group(brightX)
+        let (vi, vt, vl) = group(volX)
         return Layout(brightIcon: bi, brightTrack: bt, brightLabel: bl,
-                      volIcon: vi, volTrack: vt, volLabel: vl,
-                      close: close, midX: 12 + groupW + gap / 2)
+                      volIcon: vi, volTrack: vt, volLabel: vl, close: close)
     }
 
     // MARK: - Input
@@ -80,11 +86,14 @@ final class ControlPanel {
             flashMute = 0.25
             return false
         }
-        // Generous vertical hit area: the bar is only 30pt tall.
-        if p.x < l.midX {
+        // Hit-test each track by name. The whole left of the bar is empty now,
+        // so a tap over there must not grab the nearest slider.
+        // Vertically anything goes: the bar is only 30pt tall.
+        let slack: CGFloat = 8
+        if p.x >= l.brightTrack.minX - slack, p.x <= l.brightTrack.maxX + slack {
             drag = .brightness
             setBrightness(from: p, l)
-        } else {
+        } else if p.x >= l.volTrack.minX - slack, p.x <= l.volTrack.maxX + slack {
             drag = .volume
             setVolume(from: p, l)
         }
