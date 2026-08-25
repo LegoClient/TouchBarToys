@@ -2,7 +2,7 @@
 
 [![build](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml/badge.svg)](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml)
 
-Thirty-three pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
+Thirty-four pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
 demoscene effects, small games, and a few system monitors that are actually
 useful.
 
@@ -102,6 +102,12 @@ The app opens on System Dashboard each time. Its panels lay themselves out from
 the bar width, dropping a label or shrinking the clock rather than letting text
 collide, so it survives both the full-width and button-mode canvases.
 
+There are two of it. `System Dashboard` blooms and drops the disk panel;
+`System Dashboard (Flat)` is the earlier flat look and keeps disk. Both are the
+same `DashboardToy` class registered twice with a different `Style`, so the
+layout and sampling stay in one place. The flat one is cheaper, 7.6% of a core
+against 10.9%.
+
 Its glow is drawn by stacking each shape a few times, larger and fainter each
 time, rather than with a CoreGraphics shadow. A shadowed transparency layer per
 group measured at 16% of a core for a bloom you could barely see; stacked fills
@@ -126,7 +132,8 @@ Pendulum Wave†, Tunnels†, LED Marquee†
 **Ambient.** Plasma†, Metaballs†, Aquarium†, Snowfall†, Aurora†, Mandelbrot†
 
 **System.** System Dashboard (clock, CPU, network, RAM and battery at a glance,
-and what the app opens on), CPU Spectrum, Battery, Network, Memory & Disk, Clock†
+and what the app opens on), System Dashboard (Flat) (the same panels drawn flat,
+with a disk panel too), CPU Spectrum, Battery, Network, Memory & Disk, Clock†
 
 **Silly.** Hacker Terminal†, Almost Done†, Dominoes†
 

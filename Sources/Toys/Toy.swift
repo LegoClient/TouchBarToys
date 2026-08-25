@@ -126,8 +126,8 @@ enum Toys {
                 AuroraToy(), MandelbrotToy(),
             ]),
             Group(name: "System", toys: [
-                DashboardToy(), CPUToy(), BatteryToy(), NetworkToy(), SystemToy(),
-                ClockToy(),
+                DashboardToy(), DashboardToy(style: .flat),
+                CPUToy(), BatteryToy(), NetworkToy(), SystemToy(), ClockToy(),
             ]),
             Group(name: "Silly", toys: [
                 HackerToy(), ProgressToy(), DominoToy(),

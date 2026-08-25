@@ -4,8 +4,26 @@ import Foundation
 /// Every System scene at once: clock, CPU, memory, disk, network and battery,
 /// each in its own panel across the bar.
 final class DashboardToy: Toy {
-    let title = "System Dashboard"
-    let emoji = "🖥️"
+    /// Two presentations of the same panels, registered as separate scenes so
+    /// they can be switched between.
+    enum Style {
+        /// Five panels, bloomed. No disk.
+        case glow
+        /// The earlier flat look, disk panel included.
+        case flat
+    }
+
+    let style: Style
+
+    init(style: Style = .glow) {
+        self.style = style
+        netHistory = Array(repeating: (down: 0, up: 0), count: netSamples)
+    }
+
+    var title: String {
+        style == .glow ? "System Dashboard" : "System Dashboard (Flat)"
+    }
+    var emoji: String { style == .glow ? "🖥️" : "📋" }
 
     private let stats = SystemStats.shared
     private var bars: [Double] = []
@@ -14,10 +32,6 @@ final class DashboardToy: Toy {
     private var sinceNetPush = 0.0
 
     private let netSamples = 46
-
-    init() {
-        netHistory = Array(repeating: (down: 0, up: 0), count: netSamples)
-    }
 
     func update(dt: Double, size: CGSize) {
         stats.tick(dt: dt)
@@ -52,7 +66,8 @@ final class DashboardToy: Toy {
         // crowd everything else on the narrower, button-mode canvas
         let clockW = min(96, max(64, size.width * 0.095))
         let battW = min(98, max(68, size.width * 0.098))
-        let flexible = size.width - pad * 2 - gap * 4 - clockW - battW
+        let gaps: CGFloat = style == .flat ? 5 : 4
+        let flexible = size.width - pad * 2 - gap * gaps - clockW - battW
         guard flexible > 80 else { return }
 
         var x = pad
@@ -62,17 +77,23 @@ final class DashboardToy: Toy {
             return r
         }
 
-        let panels = [
-            advance(clockW), advance(flexible * 0.40), advance(flexible * 0.33),
-            advance(flexible * 0.27), advance(battW),
-        ]
+        var panels: [CGRect] = [advance(clockW)]
+        if style == .flat {
+            panels += [advance(flexible * 0.34), advance(flexible * 0.28),
+                       advance(flexible * 0.22), advance(flexible * 0.16)]
+        } else {
+            panels += [advance(flexible * 0.40), advance(flexible * 0.33),
+                       advance(flexible * 0.27)]
+        }
+        panels.append(advance(battW))
         for r in panels { card(ctx, r) }
 
         clock(ctx, panels[0])
         cpu(ctx, panels[1])
         network(ctx, panels[2])
         memory(ctx, panels[3])
-        battery(ctx, panels[4])
+        if style == .flat { disk(ctx, panels[4]) }
+        battery(ctx, panels[panels.count - 1])
     }
 
     // MARK: - Panel furniture
@@ -82,6 +103,7 @@ final class DashboardToy: Toy {
         ctx.addPath(CGPath(roundedRect: r, cornerWidth: 5, cornerHeight: 5, transform: nil))
         ctx.fillPath()
         // a hairline along the top edge so the card has a lit lip
+        guard style == .glow else { return }
         ctx.setFillColor(CGColor(gray: 0.20, alpha: 1))
         ctx.addPath(CGPath(roundedRect: CGRect(x: r.minX + 3, y: r.maxY - 1.2,
                                                width: r.width - 6, height: 1),
@@ -93,6 +115,16 @@ final class DashboardToy: Toy {
     /// than with a CoreGraphics shadow. A shadowed transparency layer per group
     /// measured at 16% of a core for a glow you could barely see; this is a
     /// fraction of that and far brighter.
+    /// Bloomed or flat, depending on the style.
+    private func lit(_ ctx: CGContext, _ r: CGRect, _ color: CGColor,
+                     spread: CGFloat = 2.5) {
+        if style == .glow {
+            glowCapsule(ctx, r, color, spread: spread)
+        } else {
+            capsule(ctx, r, color)
+        }
+    }
+
     private func glowCapsule(_ ctx: CGContext, _ r: CGRect, _ color: CGColor,
                              spread: CGFloat = 3) {
         guard r.width > 0.4, r.height > 0.4 else { return }
@@ -174,16 +206,22 @@ final class DashboardToy: Toy {
 
         var timeSize: CGFloat = showDate ? 12 : 14
         while Text.width(time, size: timeSize) > inner.width, timeSize > 8 { timeSize -= 0.5 }
-        glowing(ctx, CGColor(red: 0.55, green: 0.75, blue: 1.0, alpha: 1), blur: 6) {
+        let drawTime = {
             Text.draw(time, in: ctx, at: CGPoint(x: r.midX, y: r.minY + (showDate ? 6 : 9)),
                       size: timeSize, color: CGColor(gray: 0.97, alpha: 1), align: .center)
+        }
+        if style == .glow {
+            glowing(ctx, CGColor(red: 0.55, green: 0.75, blue: 1.0, alpha: 1), blur: 6,
+                    drawTime)
+        } else {
+            drawTime()
         }
 
         let frac = CGFloat(Double(c.second ?? 0) / 60)
         let track = CGRect(x: inner.minX, y: r.minY + 3, width: inner.width, height: 2)
         capsule(ctx, track, CGColor(gray: 0.16, alpha: 1))
         let sweep = CGColor(red: 0.45, green: 0.68, blue: 1.0, alpha: 1)
-        glowCapsule(ctx, CGRect(x: track.minX, y: track.minY,
+        lit(ctx, CGRect(x: track.minX, y: track.minY,
                                 width: max(2, track.width * frac), height: track.height),
                     sweep, spread: 2.5)
     }
@@ -212,8 +250,7 @@ final class DashboardToy: Toy {
             let v = a + (b - a) * (f - f.rounded(.down))
             let x = area.minX + CGFloat(i) * slot
             let h = max(floor, min(area.height, CGFloat(v) * area.height))
-            glowCapsule(ctx, CGRect(x: x, y: area.minY, width: barW, height: h),
-                        heat(v), spread: 2.5)
+            lit(ctx, CGRect(x: x, y: area.minY, width: barW, height: h), heat(v))
         }
     }
 
@@ -233,12 +270,10 @@ final class DashboardToy: Toy {
             let dh = CGFloat(min(1, s.down / netPeak)) * half
             let uh = CGFloat(min(1, s.up / netPeak)) * half
             if dh > 0.3 {
-                glowCapsule(ctx, CGRect(x: x, y: mid, width: w, height: dh),
-                            downColor, spread: 2.5)
+                lit(ctx, CGRect(x: x, y: mid, width: w, height: dh), downColor)
             }
             if uh > 0.3 {
-                glowCapsule(ctx, CGRect(x: x, y: mid - uh, width: w, height: uh),
-                            upColor, spread: 2.5)
+                lit(ctx, CGRect(x: x, y: mid - uh, width: w, height: uh), upColor)
             }
         }
     }
@@ -250,7 +285,7 @@ final class DashboardToy: Toy {
         guard stats.totalRAM > 0 else { return }
         capsule(ctx, area, CGColor(gray: 0.16, alpha: 1))
         let usedW = area.width * CGFloat(min(1, used / stats.totalRAM))
-        if let halo = CGColor(red: 0.5, green: 0.72, blue: 1.0, alpha: 0.22) as CGColor? {
+        if style == .glow, let halo = CGColor(red: 0.5, green: 0.72, blue: 1.0, alpha: 0.22) as CGColor? {
             capsule(ctx, CGRect(x: area.minX, y: area.minY, width: usedW, height: area.height)
                         .insetBy(dx: -3, dy: -3), halo)
         }
@@ -272,6 +307,19 @@ final class DashboardToy: Toy {
             x += w
         }
         ctx.restoreGState()
+    }
+
+    private func disk(_ ctx: CGContext, _ r: CGRect) {
+        let freeGB = (stats.diskTotal - stats.diskUsed) / 1_000_000_000
+        let frac = stats.diskTotal > 0 ? stats.diskUsed / stats.diskTotal : 0
+        let area = header(ctx, r, "DISK", String(format: "%.0fG", freeGB),
+                          CGColor(gray: 0.84, alpha: 1))
+        capsule(ctx, area, CGColor(gray: 0.16, alpha: 1))
+        lit(ctx, CGRect(x: area.minX, y: area.minY,
+                        width: max(area.height, area.width * CGFloat(frac)),
+                        height: area.height),
+            frac > 0.9 ? CGColor(red: 1.0, green: 0.35, blue: 0.3, alpha: 1)
+                       : CGColor(red: 0.55, green: 0.85, blue: 0.55, alpha: 1))
     }
 
     private func battery(_ ctx: CGContext, _ r: CGRect) {
@@ -304,10 +352,9 @@ final class DashboardToy: Toy {
         capsule(ctx, CGRect(x: body.maxX + 1, y: body.midY - 1.8, width: 2.5, height: 3.6),
                 CGColor(gray: 0.5, alpha: 1))
         let inner = body.insetBy(dx: 2, dy: 2)
-        glowCapsule(ctx, CGRect(x: inner.minX, y: inner.minY,
-                                width: max(inner.height,
-                                           inner.width * CGFloat(stats.batteryLevel)),
-                                height: inner.height), color, spread: 2.5)
+        lit(ctx, CGRect(x: inner.minX, y: inner.minY,
+                        width: max(inner.height, inner.width * CGFloat(stats.batteryLevel)),
+                        height: inner.height), color)
         if stats.charging {
             ctx.setFillColor(CGColor(gray: 0.05, alpha: 1))
             ctx.beginPath()

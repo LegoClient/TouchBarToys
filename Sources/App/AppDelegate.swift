@@ -95,7 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         }
 
         // Always open on the dashboard, whatever was showing last time.
-        if let i = toys.firstIndex(where: { $0 is DashboardToy }) {
+        if let i = toys.firstIndex(where: { ($0 as? DashboardToy)?.style == .glow }) {
             index = i
         } else if let saved = defaults.string(forKey: toyKey),
                   let i = toys.firstIndex(where: { $0.title == saved }) {
