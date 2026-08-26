@@ -125,7 +125,7 @@ enum Toys {
                 PlasmaToy(), MetaballsToy(), AquariumToy(), SnowToy(),
                 AuroraToy(), MandelbrotToy(),
             ]),
-            Group(name: "Now Playing", toys: [SpotifyToy()]),
+            Group(name: "Now Playing", toys: [AudioWaveToy(), SpotifyToy()]),
             Group(name: "System", toys: [
                 DashboardToy(), DashboardToy(style: .flat),
                 CPUToy(), BatteryToy(), NetworkToy(), SystemToy(), ClockToy(),

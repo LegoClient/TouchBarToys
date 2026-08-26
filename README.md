@@ -2,7 +2,7 @@
 
 [![build](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml/badge.svg)](https://github.com/LegoClient/TouchBarToys/actions/workflows/build.yml)
 
-Thirty-five pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
+Thirty-six pointless, flashy things for the MacBook Pro Touch Bar: screensavers,
 demoscene effects, small games, and a few system monitors that are actually
 useful.
 
@@ -119,8 +119,9 @@ Animation only runs while the bar is open, so it costs nothing when idle.
 
 ## The scenes
 
-**Now Playing.** Spotify (album art, track, artist, elapsed and remaining, and a
-waveform scrubber tinted from the cover)
+**Now Playing.** Audio Waveform (a wave packet driven by whatever is playing,
+with the source app's icon at the left), Spotify (album art, track, artist,
+elapsed and remaining, and a waveform scrubber tinted from the cover)
 
 **Classics.** Rainbow Pop-Tart Cat, DVD Bounce (it counts real corner hits),
 Matrix Rain, Doom Fire†, Hyperspace†
@@ -351,6 +352,27 @@ It needs Automation permission, which macOS prompts for on first use. Because
 the app is ad-hoc signed, its signature changes on every rebuild, so macOS may
 ask again after you rebuild. `TBT_FAKE_NOWPLAYING=1` renders the scene with
 sample data if you want to work on the layout without a player running.
+
+### System audio is reachable, but the permission is the hard part
+
+macOS 14.4 added process taps, and they are a much better route than a loopback
+device or ScreenCaptureKit. `AudioHardwareCreateProcessTap` plus an aggregate
+device works here with no entitlement: the tap is created, the aggregate device
+is created, the IOProc runs and delivers buffers.
+
+Every sample in those buffers is zero until audio-capture permission is granted,
+which is the same pattern as screen capture handing back black frames. The tap
+does not fail, it just goes silent, so `AudioSource` watches for buffers
+arriving while something is producing output and treats sustained silence as
+"not permitted".
+
+No permission prompt appeared during development, most likely because this is an
+`LSUIElement` app with no Dock presence. If the waveform says SYNTHETIC, add the
+app under Privacy & Security, in Screen & System Audio Recording.
+
+`kAudioHardwarePropertyProcessObjectList` with `kAudioProcessPropertyIsRunningOutput`
+is the other half, and needs no permission at all: it names the PIDs producing
+audio right now, which is where the source app's icon comes from.
 
 ### The Touch Bar dims after 47 seconds and you cannot stop it
 
