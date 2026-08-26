@@ -43,7 +43,7 @@ final class AudioWaveToy: Toy {
         let haveRealAudio = sinceRealAudio < 4
         synthetic = forceSynthetic || (!haveRealAudio && audio.isPlaying)
         idle = (haveRealAudio || audio.isPlaying || forceSynthetic)
-            ? 0 : min(1, idle + dt * 0.6)
+            ? 0 : min(1, idle + dt * 1.2)
     }
 
     func draw(in ctx: CGContext, size: CGSize) {
@@ -85,7 +85,9 @@ final class AudioWaveToy: Toy {
         // how loud things are right now, with a floor so it never fully dies
         let measured = max(0.06, Double(audio.level))
         let invented = 0.80 + 0.14 * sin(t * 0.83) + 0.06 * sin(t * 2.1 + 1.3)
-        let loudness = (synthetic ? invented : measured) * (1 - idle * 0.75)
+        // damps all the way to zero, so an idle bar is a still flat line
+        // rather than a line that keeps rippling with nothing playing
+        let loudness = (synthetic ? invented : measured) * (1 - idle)
 
         var displacement = [CGFloat](repeating: 0, count: steps + 1)
         for i in 0...steps {

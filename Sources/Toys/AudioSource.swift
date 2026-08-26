@@ -42,6 +42,15 @@ final class AudioSource {
     private var iconPID: pid_t = -1
     private let queue = DispatchQueue(label: "com.touchbartoys.audio")
 
+    /// Apps we'd always believe over anything else claiming the output.
+    private static let knownPlayers: Set<String> = [
+        "com.spotify.client", "com.apple.Music", "com.apple.podcasts", "com.apple.TV",
+        "com.google.Chrome", "com.apple.Safari", "org.mozilla.firefox",
+        "com.brave.Browser", "company.thebrowser.Browser", "com.microsoft.edgemac",
+        "org.videolan.vlc", "com.colliderli.iina", "com.apple.QuickTimePlayerX",
+        "tv.plex.desktop", "com.netflix.Netflix",
+    ]
+
     // MARK: - Lifecycle
 
     func start() {
@@ -177,6 +186,7 @@ final class AudioSource {
 
         let mine = ProcessInfo.processInfo.processIdentifier
         var best: (pid: pid_t, app: NSRunningApplication)?
+        var bestRank = Int.max
         var anyPlaying = false
         for object in objects {
             var pidAddress = AudioObjectPropertyAddress(
@@ -196,18 +206,26 @@ final class AudioSource {
             guard AudioObjectGetPropertyData(object, &runAddress, 0, nil,
                                              &runSize, &isRunning) == noErr,
                   isRunning != 0 else { continue }
+            // Menu-bar utilities can hold an output stream open without
+            // playing anything (Pock does), so an accessory app claiming the
+            // output is not evidence that audio is playing. Only foreground
+            // apps, and known players, count.
+            guard let app = NSRunningApplication(processIdentifier: pid),
+                  let bundle = app.bundleIdentifier else { continue }
+            let known = Self.knownPlayers.contains(bundle)
+            guard known || app.activationPolicy == .regular else { continue }
             anyPlaying = true
-            // only processes that are actual apps have an icon worth showing
-            if let app = NSRunningApplication(processIdentifier: pid),
-               app.activationPolicy != .prohibited, app.bundleIdentifier != nil {
-                if best == nil { best = (pid, app) }
-            }
+            let rank = known ? 0 : 1
+            if bestRank > rank { bestRank = rank; best = (pid, app) }
         }
 
         DispatchQueue.main.async {
             // hold for a moment, so a gap between tracks doesn't flicker it
             if anyPlaying { self.sinceSeenPlaying = 0 }
-            guard let best else { return }
+            guard let best else {
+                if !anyPlaying { self.appName = nil; self.appIcon = nil; self.iconPID = -1 }
+                return
+            }
             self.appName = best.app.localizedName
             if self.iconPID != best.pid {
                 self.iconPID = best.pid
