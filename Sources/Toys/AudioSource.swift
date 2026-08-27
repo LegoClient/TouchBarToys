@@ -40,6 +40,7 @@ final class AudioSource {
     private var silentFor = 0.0
     private var scanning = false
     private var iconPID: pid_t = -1
+    private var bundleIcons: [String: CGImage?] = [:]
     private let queue = DispatchQueue(label: "com.touchbartoys.audio")
 
     /// Apps we'd always believe over anything else claiming the output.
@@ -232,6 +233,17 @@ final class AudioSource {
                 self.appIcon = Self.cgImage(best.app.icon)
             }
         }
+    }
+
+    /// Icon for a specific bundle, for when we know who is playing from a
+    /// better source than the audio process list.
+    func icon(forBundleID bundleID: String) -> CGImage? {
+        if let cached = bundleIcons[bundleID] { return cached }
+        guard let app = NSRunningApplication
+            .runningApplications(withBundleIdentifier: bundleID).first else { return nil }
+        let image = Self.cgImage(app.icon)
+        bundleIcons[bundleID] = image
+        return image
     }
 
     private static func cgImage(_ image: NSImage?) -> CGImage? {

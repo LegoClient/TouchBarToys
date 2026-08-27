@@ -371,8 +371,13 @@ No permission prompt appeared during development, most likely because this is an
 app under Privacy & Security, in Screen & System Audio Recording.
 
 `kAudioHardwarePropertyProcessObjectList` with `kAudioProcessPropertyIsRunningOutput`
-is the other half, and needs no permission at all: it names the PIDs producing
-audio right now, which is where the source app's icon comes from.
+names the PIDs holding an output stream, and needs no permission. It is not the
+same as "is making sound", though. The flag stays true after playback stops and
+for apps that merely keep a session open, so Pock, Spotify and Chrome all kept
+the scene animating with nothing playing. Without capture permission there is no
+way to tell an open stream from actual audio, so the scene only animates on
+signals that really know: measured samples, or a player reporting its own
+transport state over AppleScript. Otherwise it sits still.
 
 ### The Touch Bar dims after 47 seconds and you cannot stop it
 

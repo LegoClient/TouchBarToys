@@ -12,6 +12,8 @@ final class AudioWaveToy: Toy {
     let emoji = "🎵"
 
     private let audio = AudioSource.shared
+    private let now = NowPlaying.shared
+    private var playing = false
     private var t = 0.0
     private var smoothed = [Double](repeating: 0, count: 220)
     private var idle = 0.0
@@ -36,14 +38,20 @@ final class AudioWaveToy: Toy {
             let rate = target > smoothed[i] ? 16.0 : 5.0
             smoothed[i] += (target - smoothed[i]) * min(1, rate * dt)
         }
-        // Real audio wins whenever there is any. If something is playing but
-        // the tap is handing us silence, fall back to a drawn envelope rather
-        // than showing a dead line.
+        // `isRunningOutput` only means a process holds an audio stream open. It
+        // stays true after playback stops and for apps merely keeping a session,
+        // which is why Spotify and Chrome kept the scene moving with nothing
+        // playing. Without capture permission there is no way to tell an open
+        // stream from actual sound, so only trust signals that really know:
+        // measured audio, or a player that reports its own transport state.
+        now.tick(dt: dt)
         if audio.level > 0.0008 { sinceRealAudio = 0 } else { sinceRealAudio += dt }
         let haveRealAudio = sinceRealAudio < 4
-        synthetic = forceSynthetic || (!haveRealAudio && audio.isPlaying)
-        idle = (haveRealAudio || audio.isPlaying || forceSynthetic)
-            ? 0 : min(1, idle + dt * 1.2)
+        let playerSaysPlaying = now.snapshot().state == .playing
+
+        playing = haveRealAudio || playerSaysPlaying || forceSynthetic
+        synthetic = forceSynthetic || (!haveRealAudio && playerSaysPlaying)
+        idle = playing ? 0 : min(1, idle + dt * 1.2)
     }
 
     func draw(in ctx: CGContext, size: CGSize) {
@@ -52,11 +60,12 @@ final class AudioWaveToy: Toy {
 
         let iconSide = size.height - 8
         let iconRect = CGRect(x: 5, y: 4, width: iconSide, height: iconSide)
-        if let icon = audio.appIcon {
-            ctx.saveGState()
-            ctx.setAlpha(audio.isPlaying ? 1 : 0.45)
+        // prefer whoever we actually know is playing over whoever holds a stream
+        let icon = (now.snapshot().state == .playing
+                    ? audio.icon(forBundleID: "com.spotify.client") : nil)
+            ?? (playing ? audio.appIcon : nil)
+        if let icon {
             ctx.draw(icon, in: iconRect)
-            ctx.restoreGState()
         } else {
             ctx.setStrokeColor(CGColor(gray: 0.28, alpha: 1))
             ctx.setLineWidth(1)
